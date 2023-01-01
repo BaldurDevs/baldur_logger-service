@@ -3,15 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"log-service/cmd/api/data"
 	"net/http"
-	"time"
+	"os"
 )
-
-var client *mongo.Client
 
 type Config struct {
 	Models data.Models
@@ -24,15 +23,22 @@ func main() {
 		log.Panic(err)
 	}
 
-	client = mongoClient
+	// Ping to mongo
+	log.Println("Pinging to mongo...")
+	mongoErr := mongoClient.Ping(context.TODO(), nil)
+	if mongoErr != nil {
+		log.Println(mongoErr)
+		return
+	}
+	log.Println("Ping successful!!")
 
 	// Create a context in order to disconnect
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), data.TimeOutInterval)
 	defer cancel()
 
 	// Close connection
 	defer func() {
-		if err = client.Disconnect(ctx); err != nil {
+		if err = mongoClient.Disconnect(ctx); err != nil {
 			panic(err)
 		}
 	}()
@@ -60,20 +66,26 @@ func (app *Config) serve() {
 }
 
 func connectToMongo() (*mongo.Client, error) {
-	clientOptions := options.Client().ApplyURI(mongoURL)
-	clientOptions.SetAuth(options.Credential{
-		Username: "admin",
-		Password: "password",
-	})
+	var mongoUrl string
+	godotenv.Load(".env")
 
-	log.Println("Connecting to mongo...")
-	c, err := mongo.Connect(context.TODO(), clientOptions)
+	mongoUrl = os.Getenv("ATLAS_URL")
+	if mongoUrl == "" {
+		mongoUrl = fmt.Sprintf("mongodb://%s:%s@%s:%d", data.DbUser, data.DbPassword, data.Host, data.MongoPort)
+	}
+
+	client, err := mongo.NewClient(options.Client().ApplyURI(mongoUrl))
 	if err != nil {
-		log.Println("Error connecting:", err)
+		log.Println("Error creating new mongo client...")
 		return nil, err
 	}
 
-	log.Println("Connected to mongo!!!")
+	ctx, _ := context.WithTimeout(context.Background(), data.TimeOutInterval)
+	err = client.Connect(ctx)
+	if err != nil {
+		log.Println("Error connecting mongo...")
+		return nil, err
+	}
 
-	return c, nil
+	return client, nil
 }

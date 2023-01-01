@@ -33,3 +33,20 @@ func (app *Config) WriteLog(w http.ResponseWriter, r *http.Request) {
 
 	app.writeJSON(w, http.StatusAccepted, resp)
 }
+
+func (app *Config) RetrieveAllLogs(w http.ResponseWriter, r *http.Request) {
+
+	logs, err := app.Models.LogEntry.All()
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	resp := jsonResponse{
+		Error:   false,
+		Message: "logged",
+		Data:    logs,
+	}
+
+	app.writeJSON(w, http.StatusAccepted, resp)
+}

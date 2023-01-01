@@ -33,7 +33,7 @@ func New(mongo *mongo.Client) Models {
 }
 
 func (l *LogEntry) Insert(entry LogEntry) error {
-	collection := client.Database(databaseName).Collection(collectionName)
+	collection := client.Database(Database).Collection("logs")
 	_, err := collection.InsertOne(context.TODO(), LogEntry{
 		Name:      entry.Name,
 		Data:      entry.Data,
@@ -53,7 +53,7 @@ func (l *LogEntry) All() ([]*LogEntry, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := client.Database(databaseName).Collection(collectionName)
+	collection := client.Database(Database).Collection("logs")
 
 	opts := options.Find()
 	opts.SetSort(bson.D{{"created_at", -1}})
@@ -84,7 +84,7 @@ func (l *LogEntry) GetOne(id string) (*LogEntry, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := client.Database(databaseName).Collection(collectionName)
+	collection := client.Database(Database).Collection("logs")
 
 	docID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -104,7 +104,7 @@ func (l *LogEntry) DropCollection() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := client.Database(databaseName).Collection(collectionName)
+	collection := client.Database(Database).Collection("logs")
 
 	if err := collection.Drop(ctx); err != nil {
 		return err
@@ -117,7 +117,7 @@ func (l *LogEntry) Update() (*mongo.UpdateResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := client.Database(databaseName).Collection(collectionName)
+	collection := client.Database(Database).Collection("logs")
 
 	docID, err := primitive.ObjectIDFromHex(l.ID)
 	if err != nil {
